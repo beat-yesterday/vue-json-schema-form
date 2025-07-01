@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --open",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
@@ -14,6 +14,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@vicons/ionicons5": "^0.13.0",
     "pinia": "^3.0.3",
     "vue": "^3.5.17",
     "vue-router": "^4.5.1"
@@ -32,6 +33,7 @@
     "eslint-plugin-vue": "~10.2.0",
     "jiti": "^2.4.2",
     "jsdom": "^26.1.0",
+    "naive-ui": "^2.42.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "3.5.3",
     "typescript": "~5.8.0",
