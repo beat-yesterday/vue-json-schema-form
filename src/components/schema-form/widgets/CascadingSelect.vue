@@ -109,17 +109,83 @@ const fetchOptions = async (dependentVal: JsonSchemaValue) => {
   }
 }
 
+// 静态选项过滤逻辑
+const filterStaticOptions = (dependentVal: JsonSchemaValue) => {
+  const staticOptions = uiOptions.value.enumOptions as
+    | Array<{ label: string; value: JsonSchemaValue; dependsOnValue?: JsonSchemaValue }>
+    | undefined
+
+  console.log('🔄 CascadingSelect: 过滤静态选项', {
+    dependsOn: dependsOn.value,
+    dependentVal,
+    staticOptions: staticOptions?.length,
+  })
+
+  if (!staticOptions) {
+    options.value = []
+    return
+  }
+
+  if (!dependsOn.value) {
+    // 没有依赖关系，显示所有选项
+    console.log('📋 CascadingSelect: 无依赖关系，显示所有选项')
+    options.value = staticOptions
+    return
+  }
+
+  if (!dependentVal) {
+    // 依赖值为空，清空选项
+    console.log('🚫 CascadingSelect: 依赖值为空，清空选项')
+    options.value = []
+    return
+  }
+
+  // 根据依赖值过滤选项
+  const filteredOptions = staticOptions.filter((option) => {
+    if (option.dependsOnValue !== undefined) {
+      return option.dependsOnValue === dependentVal
+    }
+    // 如果没有指定 dependsOnValue，则显示该选项（向后兼容）
+    return true
+  })
+
+  console.log('✅ CascadingSelect: 过滤完成', {
+    原始选项数: staticOptions.length,
+    过滤后选项数: filteredOptions.length,
+    过滤后选项: filteredOptions.map((o) => o.label),
+  })
+
+  options.value = filteredOptions
+}
+
 watch(
   dependentValue,
   async (newVal, oldVal) => {
+    console.log('👀 CascadingSelect: 依赖值变化', {
+      字段: dependsOn.value,
+      旧值: oldVal,
+      新值: newVal,
+      当前值: props.value,
+    })
+
     if (newVal !== oldVal) {
       if (props.value) {
+        console.log('🧹 CascadingSelect: 清空当前值')
         emit('update:value', null)
       }
 
       if (newVal) {
-        await fetchOptions(newVal)
+        // 优先使用静态选项，然后是API端点
+        const staticOptions = uiOptions.value.enumOptions
+        if (staticOptions) {
+          console.log('📊 CascadingSelect: 使用静态选项')
+          filterStaticOptions(newVal)
+        } else {
+          console.log('🌐 CascadingSelect: 使用API端点')
+          await fetchOptions(newVal)
+        }
       } else {
+        console.log('🚫 CascadingSelect: 依赖值为空，清空所有选项')
         options.value = []
       }
     }
@@ -128,14 +194,33 @@ watch(
 )
 
 onMounted(() => {
+  console.log('🚀 CascadingSelect: 组件初始化', {
+    字段路径: props.path,
+    依赖字段: dependsOn.value,
+    当前依赖值: dependentValue.value,
+    有静态选项: !!uiOptions.value.enumOptions,
+    有API端点: !!endpoint.value,
+  })
+
   const staticOptions = uiOptions.value.enumOptions as
     | Array<{ label: string; value: JsonSchemaValue }>
     | undefined
 
   if (staticOptions) {
-    options.value = staticOptions
+    if (!dependsOn.value) {
+      // 没有依赖，显示所有静态选项
+      console.log('📋 CascadingSelect: 初始化 - 显示所有静态选项')
+      options.value = staticOptions
+    } else {
+      // 有依赖，根据当前依赖值过滤
+      console.log('🔗 CascadingSelect: 初始化 - 根据依赖值过滤选项')
+      filterStaticOptions(dependentValue.value)
+    }
   } else if (!dependsOn.value && endpoint.value && !endpoint.value.includes('{')) {
+    console.log('🌐 CascadingSelect: 初始化 - 加载API数据')
     fetchOptions('')
+  } else {
+    console.log('⏳ CascadingSelect: 初始化 - 等待依赖值')
   }
 })
 

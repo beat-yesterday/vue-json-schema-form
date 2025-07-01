@@ -80,7 +80,7 @@ if (!widgetRegistry.get('StringWidget')) {
 
 // 添加默认解析器
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-widgetRegistry.addResolver((schema, _uiSchema) => {
+widgetRegistry.addResolver((schema, uiSchema) => {
   // 如果有 enum，使用 select 控件
   if (schema.enum && schema.enum.length > 0) {
     return 'SelectWidget'
@@ -124,7 +124,6 @@ const computedReadonly = computed(() => {
 // 手动验证状态管理
 const validationStatus = ref<'error' | 'warning' | 'success' | undefined>(undefined)
 const validationMessage = ref<string>('')
-const hasUserInteracted = ref(false) // 跟踪用户是否已经开始交互
 
 // 验证函数
 const validateField = (value: JsonSchemaValue): { valid: boolean; message: string } => {
@@ -173,15 +172,9 @@ const validateField = (value: JsonSchemaValue): { valid: boolean; message: strin
 // 更新验证状态
 const updateValidationStatus = (value: JsonSchemaValue) => {
   const result = validateField(value)
-  // 只有在用户交互后才显示验证错误
-  if (hasUserInteracted.value) {
-    validationStatus.value = result.valid ? undefined : 'error'
-    validationMessage.value = result.message
-  } else {
-    // 初始状态不显示验证错误
-    validationStatus.value = undefined
-    validationMessage.value = ''
-  }
+
+  validationStatus.value = result.valid ? undefined : 'error'
+  validationMessage.value = result.message
 }
 
 // 监听值变化，验证（不包括初始状态）
@@ -193,8 +186,6 @@ watch(
 )
 
 const handleValueUpdate = (newValue: JsonSchemaValue) => {
-  // 标记用户已经开始交互
-  hasUserInteracted.value = true
   // 立即验证新值
   updateValidationStatus(newValue)
   emit('update:value', newValue)

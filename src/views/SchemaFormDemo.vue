@@ -346,11 +346,18 @@ const cascadingUiSchema: Record<string, UiSchema> = {
     'ui:options': {
       dependsOn: 'deviceType',
       enumOptions: [
-        // 模拟静态选项，实际使用中可以是 API 端点
-        { label: '温度传感器', value: 'temp_sensor' },
-        { label: '湿度传感器', value: 'humidity_sensor' },
-        { label: '继电器', value: 'relay' },
-        { label: 'PLC', value: 'plc' },
+        // 传感器类型的设备
+        { label: '温度传感器', value: 'temp_sensor', dependsOnValue: 'sensor' },
+        { label: '湿度传感器', value: 'humidity_sensor', dependsOnValue: 'sensor' },
+        { label: '压力传感器', value: 'pressure_sensor', dependsOnValue: 'sensor' },
+        // 执行器类型的设备
+        { label: '继电器', value: 'relay', dependsOnValue: 'actuator' },
+        { label: '电机', value: 'motor', dependsOnValue: 'actuator' },
+        { label: '阀门', value: 'valve', dependsOnValue: 'actuator' },
+        // 控制器类型的设备
+        { label: 'PLC', value: 'plc', dependsOnValue: 'controller' },
+        { label: '单片机', value: 'mcu', dependsOnValue: 'controller' },
+        { label: '工控机', value: 'ipc', dependsOnValue: 'controller' },
       ],
     },
   },
@@ -359,9 +366,35 @@ const cascadingUiSchema: Record<string, UiSchema> = {
     'ui:options': {
       dependsOn: 'device',
       enumOptions: [
-        { label: '温度值', value: 'temperature' },
-        { label: '湿度值', value: 'humidity' },
-        { label: '开关状态', value: 'switch_status' },
+        // 温度传感器的属性
+        { label: '温度值', value: 'temperature', dependsOnValue: 'temp_sensor' },
+        { label: '温度报警', value: 'temp_alarm', dependsOnValue: 'temp_sensor' },
+        // 湿度传感器的属性
+        { label: '湿度值', value: 'humidity', dependsOnValue: 'humidity_sensor' },
+        { label: '湿度报警', value: 'humidity_alarm', dependsOnValue: 'humidity_sensor' },
+        // 压力传感器的属性
+        { label: '压力值', value: 'pressure', dependsOnValue: 'pressure_sensor' },
+        { label: '压力报警', value: 'pressure_alarm', dependsOnValue: 'pressure_sensor' },
+        // 继电器的属性
+        { label: '开关状态', value: 'switch_status', dependsOnValue: 'relay' },
+        { label: '工作时间', value: 'work_time', dependsOnValue: 'relay' },
+        // 电机的属性
+        { label: '转速', value: 'speed', dependsOnValue: 'motor' },
+        { label: '扭矩', value: 'torque', dependsOnValue: 'motor' },
+        { label: '功率', value: 'power', dependsOnValue: 'motor' },
+        // 阀门的属性
+        { label: '开度', value: 'opening', dependsOnValue: 'valve' },
+        { label: '流量', value: 'flow', dependsOnValue: 'valve' },
+        // PLC的属性
+        { label: 'CPU使用率', value: 'cpu_usage', dependsOnValue: 'plc' },
+        { label: '内存使用率', value: 'memory_usage', dependsOnValue: 'plc' },
+        { label: '运行状态', value: 'run_status', dependsOnValue: 'plc' },
+        // 单片机的属性
+        { label: 'GPIO状态', value: 'gpio_status', dependsOnValue: 'mcu' },
+        { label: 'ADC值', value: 'adc_value', dependsOnValue: 'mcu' },
+        // 工控机的属性
+        { label: '系统状态', value: 'system_status', dependsOnValue: 'ipc' },
+        { label: '网络状态', value: 'network_status', dependsOnValue: 'ipc' },
       ],
     },
   },
