@@ -3,7 +3,6 @@
     <n-form
       ref="formRef"
       :model="formData"
-      :rules="formRules"
       :label-placement="labelPlacement"
       :label-width="labelWidth"
       :size="size"
@@ -71,7 +70,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { NForm, NCard } from 'naive-ui'
-import type { FormInst, FormRules } from 'naive-ui'
+import type { FormInst } from 'naive-ui'
 import type { JsonSchema, UiSchema, JsonSchemaValue, FieldGroup } from '@/types/schema'
 import SchemaField from './SchemaField.vue'
 
@@ -172,12 +171,6 @@ const hasGroups = computed(() => {
   return fieldGroups.value.some((group) => group.title !== '')
 })
 
-const formRules = computed((): FormRules => {
-  // 这里可以根据 schema 生成表单验证规则
-  // 目前验证逻辑在 SchemaField 中处理
-  return {}
-})
-
 const getFieldValue = (fieldName: string): JsonSchemaValue => {
   return formData.value[fieldName]
 }
@@ -195,13 +188,79 @@ const updateFieldValue = (fieldName: string, newValue: JsonSchemaValue) => {
   emit('update:modelValue', newFormData)
 }
 
-// 暴露表单验证方法
-const validate = async () => {
-  return formRef.value?.validate()
+// 手动验证所有字段
+const validate = async (): Promise<{ valid: boolean; errors: Record<string, string> }> => {
+  const errors: Record<string, string> = {}
+  let valid = true
+
+  if (!props.schema.properties) {
+    return { valid: true, errors: {} }
+  }
+
+  Object.keys(props.schema.properties).forEach((fieldName) => {
+    const fieldSchema = props.schema.properties![fieldName]
+    const value = formData.value[fieldName]
+
+    // 必填校验
+    if (isFieldRequired(fieldName)) {
+      if (value === null || value === undefined || value === '') {
+        errors[fieldName] = `${fieldSchema.title || fieldName}是必填项`
+        valid = false
+        return
+      }
+    }
+
+    // 字符串验证
+    if (fieldSchema.type === 'string' && typeof value === 'string') {
+      if (fieldSchema.minLength !== undefined && value.length < fieldSchema.minLength) {
+        errors[fieldName] =
+          `${fieldSchema.title || fieldName}最少需要${fieldSchema.minLength}个字符`
+        valid = false
+        return
+      }
+
+      if (fieldSchema.maxLength !== undefined && value.length > fieldSchema.maxLength) {
+        errors[fieldName] =
+          `${fieldSchema.title || fieldName}最多允许${fieldSchema.maxLength}个字符`
+        valid = false
+        return
+      }
+
+      if (fieldSchema.pattern) {
+        const regex = new RegExp(fieldSchema.pattern)
+        if (!regex.test(value)) {
+          errors[fieldName] = `${fieldSchema.title || fieldName}格式不正确`
+          valid = false
+          return
+        }
+      }
+    }
+
+    // 数字验证
+    if (
+      (fieldSchema.type === 'number' || fieldSchema.type === 'integer') &&
+      typeof value === 'number'
+    ) {
+      if (fieldSchema.minimum !== undefined && value < fieldSchema.minimum) {
+        errors[fieldName] = `${fieldSchema.title || fieldName}不能小于${fieldSchema.minimum}`
+        valid = false
+        return
+      }
+
+      if (fieldSchema.maximum !== undefined && value > fieldSchema.maximum) {
+        errors[fieldName] = `${fieldSchema.title || fieldName}不能大于${fieldSchema.maximum}`
+        valid = false
+        return
+      }
+    }
+  })
+
+  return { valid, errors }
 }
 
 const restoreValidation = () => {
-  formRef.value?.restoreValidation()
+  // 手动验证模式下，这个方法可以用来重置所有字段的验证状态
+  // 这里可以通过事件或其他方式通知子组件重置验证状态
 }
 
 defineExpose({

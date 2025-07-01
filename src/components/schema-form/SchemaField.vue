@@ -11,7 +11,7 @@
         v-if="showFormItem"
         :label="fieldLabel"
         :required="required"
-        :rule="validationRule"
+        :path="fieldPath"
         :validation-status="validationStatus"
         :feedback="validationMessage"
       >
@@ -27,10 +27,6 @@
           :readonly="computedReadonly"
           @update:value="handleValueUpdate"
         />
-
-        <template v-if="uiSchema?.['ui:help']" #feedback>
-          <div class="field-help">{{ uiSchema['ui:help'] }}</div>
-        </template>
       </n-form-item>
 
       <!-- 对于 object 和 array，可能不需要 form-item 包装 -->
@@ -52,9 +48,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch, defineExpose } from 'vue'
 import { NFormItem } from 'naive-ui'
-import type { FormItemRule } from 'naive-ui'
+
 import type { CustomWidgetProps, JsonSchemaValue } from '@/types/schema'
 import { widgetRegistry } from './WidgetRegistry'
 
@@ -108,6 +104,10 @@ const fieldLabel = computed(() => {
   return props.schema.title || props.path[props.path.length - 1] || ''
 })
 
+const fieldPath = computed(() => {
+  return props.path[props.path.length - 1] || ''
+})
+
 const showFormItem = computed(() => {
   // object 和 array 类型不需要 form-item 包装，它们会自己处理布局
   return props.schema.type !== 'object' && props.schema.type !== 'array'
@@ -121,82 +121,96 @@ const computedReadonly = computed(() => {
   return props.readonly || props.uiSchema?.['ui:readonly'] || false
 })
 
-const validationRule = computed((): FormItemRule | undefined => {
-  const rules: FormItemRule[] = []
+// 手动验证状态管理
+const validationStatus = ref<'error' | 'warning' | 'success' | undefined>(undefined)
+const validationMessage = ref<string>('')
+const hasUserInteracted = ref(false) // 跟踪用户是否已经开始交互
 
+// 验证函数
+const validateField = (value: JsonSchemaValue): { valid: boolean; message: string } => {
   // 必填校验
   if (props.required) {
-    rules.push({
-      required: true,
-      message: `${fieldLabel.value}是必填项`,
-      trigger: ['blur', 'input'],
-    })
+    if (value === null || value === undefined || value === '') {
+      return { valid: false, message: `${fieldLabel.value}是必填项` }
+    }
   }
 
-  // 字符串长度校验
-  if (props.schema.type === 'string') {
-    if (props.schema.minLength !== undefined) {
-      rules.push({
-        min: props.schema.minLength,
-        message: `${fieldLabel.value}最少需要${props.schema.minLength}个字符`,
-        trigger: ['blur', 'input'],
-      })
+  // 字符串验证
+  if (props.schema.type === 'string' && typeof value === 'string') {
+    if (props.schema.minLength !== undefined && value.length < props.schema.minLength) {
+      return { valid: false, message: `${fieldLabel.value}最少需要${props.schema.minLength}个字符` }
     }
 
-    if (props.schema.maxLength !== undefined) {
-      rules.push({
-        max: props.schema.maxLength,
-        message: `${fieldLabel.value}最多允许${props.schema.maxLength}个字符`,
-        trigger: ['blur', 'input'],
-      })
+    if (props.schema.maxLength !== undefined && value.length > props.schema.maxLength) {
+      return { valid: false, message: `${fieldLabel.value}最多允许${props.schema.maxLength}个字符` }
     }
 
     if (props.schema.pattern) {
-      rules.push({
-        pattern: new RegExp(props.schema.pattern),
-        message: `${fieldLabel.value}格式不正确`,
-        trigger: ['blur', 'input'],
-      })
+      const regex = new RegExp(props.schema.pattern)
+      if (!regex.test(value)) {
+        return { valid: false, message: `${fieldLabel.value}格式不正确` }
+      }
     }
   }
 
-  // 数字范围校验
-  if (props.schema.type === 'number' || props.schema.type === 'integer') {
-    if (props.schema.minimum !== undefined) {
-      rules.push({
-        type: 'number',
-        min: props.schema.minimum,
-        message: `${fieldLabel.value}不能小于${props.schema.minimum}`,
-        trigger: ['blur', 'input'],
-      })
+  // 数字验证
+  if (
+    (props.schema.type === 'number' || props.schema.type === 'integer') &&
+    typeof value === 'number'
+  ) {
+    if (props.schema.minimum !== undefined && value < props.schema.minimum) {
+      return { valid: false, message: `${fieldLabel.value}不能小于${props.schema.minimum}` }
     }
 
-    if (props.schema.maximum !== undefined) {
-      rules.push({
-        type: 'number',
-        max: props.schema.maximum,
-        message: `${fieldLabel.value}不能大于${props.schema.maximum}`,
-        trigger: ['blur', 'input'],
-      })
+    if (props.schema.maximum !== undefined && value > props.schema.maximum) {
+      return { valid: false, message: `${fieldLabel.value}不能大于${props.schema.maximum}` }
     }
   }
 
-  return rules.length > 0 ? rules : undefined
-})
+  return { valid: true, message: '' }
+}
 
-const validationStatus = computed(() => {
-  // 这里可以根据实际的验证状态返回 'error', 'warning', 'success' 等
-  return undefined
-})
+// 更新验证状态
+const updateValidationStatus = (value: JsonSchemaValue) => {
+  const result = validateField(value)
+  // 只有在用户交互后才显示验证错误
+  if (hasUserInteracted.value) {
+    validationStatus.value = result.valid ? undefined : 'error'
+    validationMessage.value = result.message
+  } else {
+    // 初始状态不显示验证错误
+    validationStatus.value = undefined
+    validationMessage.value = ''
+  }
+}
 
-const validationMessage = computed(() => {
-  // 这里可以返回具体的验证错误信息
-  return undefined
-})
+// 监听值变化，验证（不包括初始状态）
+watch(
+  () => props.value,
+  (newValue) => {
+    updateValidationStatus(newValue)
+  },
+)
 
 const handleValueUpdate = (newValue: JsonSchemaValue) => {
+  // 标记用户已经开始交互
+  hasUserInteracted.value = true
+  // 立即验证新值
+  updateValidationStatus(newValue)
   emit('update:value', newValue)
 }
+
+// 重置验证状态（可供外部调用）
+const resetValidation = () => {
+  hasUserInteracted.value = false
+  validationStatus.value = undefined
+  validationMessage.value = ''
+}
+
+// 暴露重置方法，以便父组件可以调用
+defineExpose({
+  resetValidation,
+})
 </script>
 
 <style scoped>
