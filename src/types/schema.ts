@@ -14,6 +14,9 @@ export interface JsonSchema {
   items?: JsonSchema
   required?: string[]
   enum?: JsonSchemaValue[]
+  enumNames?: string[]
+  oneOf?: Array<{ const: JsonSchemaValue; title?: string }>
+  const?: JsonSchemaValue
   default?: JsonSchemaValue
   minimum?: number
   maximum?: number
