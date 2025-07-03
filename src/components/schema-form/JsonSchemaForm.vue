@@ -11,68 +11,85 @@
       <template v-if="hasGroups">
         <div v-for="group in fieldGroups" :key="group.title" class="field-group">
           <n-card v-if="group.title" :title="group.title" style="margin-bottom: 16px">
-            <div class="group-fields">
-              <SchemaField
-                v-for="fieldName in group.fields"
-                :key="fieldName"
-                :value="getFieldValue(fieldName)"
-                :schema="schema.properties![fieldName]"
-                :ui-schema="getFieldUiSchema(fieldName)"
-                :root-form-data="formData"
-                :path="[fieldName]"
-                :required="isFieldRequired(fieldName)"
-                :disabled="disabled"
-                :readonly="readonly"
-                @update:value="updateFieldValue(fieldName, $event)"
-              />
-            </div>
+            <LayoutContainer
+              :layout="group.layout || globalLayout"
+              :items="getGroupLayoutItems(group.fields)"
+            >
+              <template #default="{ item }">
+                <SchemaField
+                  :value="getFieldValue(item.fieldName as string)"
+                  :schema="schema.properties![item.fieldName as string]"
+                  :ui-schema="getFieldUiSchema(item.fieldName as string)"
+                  :root-form-data="formData"
+                  :path="[item.fieldName as string]"
+                  :required="isFieldRequired(item.fieldName as string)"
+                  :disabled="disabled"
+                  :readonly="readonly"
+                  @update:value="updateFieldValue(item.fieldName as string, $event)"
+                />
+              </template>
+            </LayoutContainer>
           </n-card>
 
           <!-- 无标题分组 -->
-          <div v-else class="group-fields" style="margin-bottom: 16px">
-            <SchemaField
-              v-for="fieldName in group.fields"
-              :key="fieldName"
-              :value="getFieldValue(fieldName)"
-              :schema="schema.properties![fieldName]"
-              :ui-schema="getFieldUiSchema(fieldName)"
-              :root-form-data="formData"
-              :path="[fieldName]"
-              :required="isFieldRequired(fieldName)"
-              :disabled="disabled"
-              :readonly="readonly"
-              @update:value="updateFieldValue(fieldName, $event)"
-            />
+          <div v-else style="margin-bottom: 16px">
+            <LayoutContainer
+              :layout="group.layout || globalLayout"
+              :items="getGroupLayoutItems(group.fields)"
+            >
+              <template #default="{ item }">
+                <SchemaField
+                  :value="getFieldValue(item.fieldName as string)"
+                  :schema="schema.properties![item.fieldName as string]"
+                  :ui-schema="getFieldUiSchema(item.fieldName as string)"
+                  :root-form-data="formData"
+                  :path="[item.fieldName as string]"
+                  :required="isFieldRequired(item.fieldName as string)"
+                  :disabled="disabled"
+                  :readonly="readonly"
+                  @update:value="updateFieldValue(item.fieldName as string, $event)"
+                />
+              </template>
+            </LayoutContainer>
           </div>
         </div>
       </template>
 
       <!-- 无分组的情况 -->
       <template v-else>
-        <SchemaField
-          v-for="(propertySchema, fieldName) in orderedProperties"
-          :key="fieldName"
-          :value="getFieldValue(fieldName)"
-          :schema="propertySchema"
-          :ui-schema="getFieldUiSchema(fieldName)"
-          :root-form-data="formData"
-          :path="[fieldName]"
-          :required="isFieldRequired(fieldName)"
-          :disabled="disabled"
-          :readonly="readonly"
-          @update:value="updateFieldValue(fieldName, $event)"
-        />
+        <LayoutContainer :layout="globalLayout" :items="getAllFieldsLayoutItems()">
+          <template #default="{ item }">
+            <SchemaField
+              :value="getFieldValue(item.fieldName as string)"
+              :schema="schema.properties![item.fieldName as string]"
+              :ui-schema="getFieldUiSchema(item.fieldName as string)"
+              :root-form-data="formData"
+              :path="[item.fieldName as string]"
+              :required="isFieldRequired(item.fieldName as string)"
+              :disabled="disabled"
+              :readonly="readonly"
+              @update:value="updateFieldValue(item.fieldName as string, $event)"
+            />
+          </template>
+        </LayoutContainer>
       </template>
     </n-form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { NForm, NCard } from 'naive-ui'
+import type {
+  FieldGroup,
+  JsonSchema,
+  JsonSchemaValue,
+  LayoutConfig,
+  UiSchema,
+} from '@/types/schema'
 import type { FormInst } from 'naive-ui'
-import type { JsonSchema, UiSchema, JsonSchemaValue, FieldGroup } from '@/types/schema'
+import { NCard, NForm } from 'naive-ui'
+import { computed, ref } from 'vue'
 import SchemaField from './SchemaField.vue'
+import LayoutContainer from './components/LayoutContainer.vue'
 
 interface Props {
   schema: JsonSchema
@@ -102,6 +119,11 @@ const formRef = ref<FormInst>()
 const formData = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value),
+})
+
+// 全局布局配置
+const globalLayout = computed((): LayoutConfig | undefined => {
+  return props.uiSchema?.['*']?.['ui:layout'] as LayoutConfig | undefined
 })
 
 const orderedProperties = computed(() => {
@@ -153,14 +175,21 @@ const fieldGroups = computed((): FieldGroup[] => {
     result.push({
       title: '',
       fields: ungroupedFields,
+      layout: globalLayout.value,
     })
   }
 
   // 添加分组的字段
   Object.keys(groups).forEach((groupTitle) => {
+    // 获取分组的布局配置（如果有的话）
+    const groupLayout = props.uiSchema?.[`group:${groupTitle}`]?.['ui:layout'] as
+      | LayoutConfig
+      | undefined
+
     result.push({
       title: groupTitle,
       fields: groups[groupTitle],
+      layout: groupLayout || globalLayout.value,
     })
   })
 
@@ -170,6 +199,24 @@ const fieldGroups = computed((): FieldGroup[] => {
 const hasGroups = computed(() => {
   return fieldGroups.value.some((group) => group.title !== '')
 })
+
+// 为分组字段创建布局项目
+const getGroupLayoutItems = (fields: string[]) => {
+  return fields.map((fieldName) => ({
+    key: fieldName,
+    fieldName,
+    layout: getFieldUiSchema(fieldName)?.['ui:layout'] as LayoutConfig | undefined,
+  }))
+}
+
+// 为所有字段创建布局项目
+const getAllFieldsLayoutItems = () => {
+  return Object.keys(orderedProperties.value).map((fieldName) => ({
+    key: fieldName,
+    fieldName,
+    layout: getFieldUiSchema(fieldName)?.['ui:layout'] as LayoutConfig | undefined,
+  }))
+}
 
 const getFieldValue = (fieldName: string): JsonSchemaValue => {
   return formData.value[fieldName]
@@ -191,81 +238,34 @@ const updateFieldValue = (fieldName: string, newValue: JsonSchemaValue) => {
 // 手动验证所有字段
 const validate = async (): Promise<{ valid: boolean; errors: Record<string, string> }> => {
   const errors: Record<string, string> = {}
-  let valid = true
+  const valid = true
 
   if (!props.schema.properties) {
     return { valid: true, errors: {} }
   }
 
-  Object.keys(props.schema.properties).forEach((fieldName) => {
-    const fieldSchema = props.schema.properties![fieldName]
-    const value = formData.value[fieldName]
-
-    // 必填校验
-    if (isFieldRequired(fieldName)) {
-      if (value === null || value === undefined || value === '') {
-        errors[fieldName] = `${fieldSchema.title || fieldName}是必填项`
-        valid = false
-        return
-      }
-    }
-
-    // 字符串验证
-    if (fieldSchema.type === 'string' && typeof value === 'string') {
-      if (fieldSchema.minLength !== undefined && value.length < fieldSchema.minLength) {
-        errors[fieldName] =
-          `${fieldSchema.title || fieldName}最少需要${fieldSchema.minLength}个字符`
-        valid = false
-        return
-      }
-
-      if (fieldSchema.maxLength !== undefined && value.length > fieldSchema.maxLength) {
-        errors[fieldName] =
-          `${fieldSchema.title || fieldName}最多允许${fieldSchema.maxLength}个字符`
-        valid = false
-        return
-      }
-
-      if (fieldSchema.pattern) {
-        const regex = new RegExp(fieldSchema.pattern)
-        if (!regex.test(value)) {
-          errors[fieldName] = `${fieldSchema.title || fieldName}格式不正确`
-          valid = false
-          return
-        }
-      }
-    }
-
-    // 数字验证
-    if (
-      (fieldSchema.type === 'number' || fieldSchema.type === 'integer') &&
-      typeof value === 'number'
-    ) {
-      if (fieldSchema.minimum !== undefined && value < fieldSchema.minimum) {
-        errors[fieldName] = `${fieldSchema.title || fieldName}不能小于${fieldSchema.minimum}`
-        valid = false
-        return
-      }
-
-      if (fieldSchema.maximum !== undefined && value > fieldSchema.maximum) {
-        errors[fieldName] = `${fieldSchema.title || fieldName}不能大于${fieldSchema.maximum}`
-        valid = false
-        return
-      }
-    }
-  })
+  // TODO: 实现字段验证逻辑
 
   return { valid, errors }
 }
 
-const restoreValidation = () => {
-  // 手动验证模式下，这个方法可以用来重置所有字段的验证状态
-  // 这里可以通过事件或其他方式通知子组件重置验证状态
+// 重置表单
+const reset = () => {
+  const resetData: Record<string, JsonSchemaValue> = {}
+
+  if (props.schema.properties) {
+    Object.keys(props.schema.properties).forEach((key) => {
+      const fieldSchema = props.schema.properties![key]
+      resetData[key] = fieldSchema.default || null
+    })
+  }
+
+  emit('update:modelValue', resetData)
 }
 
 defineExpose({
   validate,
-  restoreValidation,
+  reset,
   formRef,
 })
 </script>
@@ -277,10 +277,6 @@ defineExpose({
 
 .field-group {
   margin-bottom: 16px;
-}
-
-.field-group:last-child {
-  margin-bottom: 0;
 }
 
 .group-fields {

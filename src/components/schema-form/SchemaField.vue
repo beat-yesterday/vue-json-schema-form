@@ -48,19 +48,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, defineExpose } from 'vue'
 import { NFormItem } from 'naive-ui'
+import { computed, ref, watch } from 'vue'
 
 import type { CustomWidgetProps, JsonSchemaValue } from '@/types/schema'
 import { widgetRegistry } from './WidgetRegistry'
 
 // 内置控件
-import StringWidget from './widgets/StringWidget.vue'
-import NumberWidget from './widgets/NumberWidget.vue'
-import BooleanWidget from './widgets/BooleanWidget.vue'
-import SelectWidget from './widgets/SelectWidget.vue'
 import ArrayWidget from './widgets/ArrayWidget.vue'
+import BooleanWidget from './widgets/BooleanWidget.vue'
+import NumberWidget from './widgets/NumberWidget.vue'
 import ObjectWidget from './widgets/ObjectWidget.vue'
+import SelectWidget from './widgets/SelectWidget.vue'
+import StringWidget from './widgets/StringWidget.vue'
 
 const props = defineProps<CustomWidgetProps>()
 

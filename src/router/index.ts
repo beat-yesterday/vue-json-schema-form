@@ -22,6 +22,11 @@ const router = createRouter({
       name: 'schema-form-demo',
       component: () => import('../views/SchemaFormDemo.vue'),
     },
+    {
+      path: '/layout-demo',
+      name: 'layout-demo',
+      component: () => import('../views/LayoutDemo.vue'),
+    },
   ],
 })
 
