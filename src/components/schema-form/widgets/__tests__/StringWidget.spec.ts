@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   createTestSchema,
   createTestUiSchema,
-  expectEventEmitted,
   mountWidget,
   TEST_DATA,
 } from '../../__tests__/test-utils'
@@ -109,50 +108,55 @@ describe('StringWidget', () => {
       const input = wrapper.find('input')
 
       await input.setValue(newValue)
-      await input.trigger('input')
 
-      expectEventEmitted(wrapper, 'update:value', newValue)
-      expect(wrapper.emitted('update:value')).toBeTruthy()
+      const updateValueEvents = wrapper.emitted('update:value')
+      expect(updateValueEvents).toBeTruthy()
+      expect(updateValueEvents).toHaveLength(1)
+      expect(updateValueEvents![0][0]).toBe(newValue)
     })
 
     it('应该处理空字符串输入', async () => {
       const input = wrapper.find('input')
 
       await input.setValue(TEST_DATA.strings.empty)
-      await input.trigger('input')
+      const updateValueEvents = wrapper.emitted('update:value')
 
-      expectEventEmitted(wrapper, 'update:value', TEST_DATA.strings.empty)
-      expect(wrapper.emitted('update:value')).toBeTruthy()
+      expect(updateValueEvents).toBeTruthy()
+      expect(updateValueEvents).toHaveLength(1)
+      expect(updateValueEvents![0][0]).toBe(TEST_DATA.strings.empty)
     })
 
     it('应该处理长文本输入', async () => {
       const input = wrapper.find('input')
 
       await input.setValue(TEST_DATA.strings.long)
-      await input.trigger('input')
+      const updateValueEvents = wrapper.emitted('update:value')
 
-      expectEventEmitted(wrapper, 'update:value', TEST_DATA.strings.long)
-      expect(wrapper.emitted('update:value')).toBeTruthy()
+      expect(updateValueEvents).toBeTruthy()
+      expect(updateValueEvents).toHaveLength(1)
+      expect(updateValueEvents![0][0]).toBe(TEST_DATA.strings.long)
     })
 
     it('应该处理特殊字符输入', async () => {
       const input = wrapper.find('input')
 
       await input.setValue(TEST_DATA.strings.special)
-      await input.trigger('input')
+      const updateValueEvents = wrapper.emitted('update:value')
 
-      expectEventEmitted(wrapper, 'update:value', TEST_DATA.strings.special)
-      expect(wrapper.emitted('update:value')).toBeTruthy()
+      expect(updateValueEvents).toBeTruthy()
+      expect(updateValueEvents).toHaveLength(1)
+      expect(updateValueEvents![0][0]).toBe(TEST_DATA.strings.special)
     })
 
     it('应该处理中文字符输入', async () => {
       const input = wrapper.find('input')
 
       await input.setValue(TEST_DATA.strings.chinese)
-      await input.trigger('input')
+      const updateValueEvents = wrapper.emitted('update:value')
 
-      expectEventEmitted(wrapper, 'update:value', TEST_DATA.strings.chinese)
-      expect(wrapper.emitted('update:value')).toBeTruthy()
+      expect(updateValueEvents).toBeTruthy()
+      expect(updateValueEvents).toHaveLength(1)
+      expect(updateValueEvents![0][0]).toBe(TEST_DATA.strings.chinese)
     })
   })
 
@@ -232,13 +236,10 @@ describe('StringWidget', () => {
       const input = wrapper.find('input')
 
       await input.setValue('a')
-      await input.trigger('input')
 
       await input.setValue('ab')
-      await input.trigger('input')
 
       await input.setValue('abc')
-      await input.trigger('input')
 
       const events = wrapper.emitted('update:value')
       expect(events).toHaveLength(3)
@@ -251,11 +252,9 @@ describe('StringWidget', () => {
       // 先设置一个值
       const input = wrapper.find('input')
       await input.setValue('test')
-      await input.trigger('input')
 
       // 然后清空
       await input.setValue('')
-      await input.trigger('input')
 
       const events = wrapper.emitted('update:value')
       expect(events).toHaveLength(2)
@@ -274,7 +273,6 @@ describe('StringWidget', () => {
       // 测试是否正确绑定了 @update:value 事件
       const input = wrapper.find('input')
       await input.setValue('test')
-      await input.trigger('input')
 
       expect(wrapper.emitted('update:value')).toBeTruthy()
     })

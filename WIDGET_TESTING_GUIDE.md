@@ -168,36 +168,36 @@ src/components/schema-form/
 
 ```bash
 # 运行所有测试
-npm run test:unit
+pnpm run test:unit
 
 # 运行特定 Widget 测试
-npm run test:unit StringWidget
-npm run test:unit NumberWidget
-npm run test:unit BooleanWidget
-npm run test:unit SelectWidget
-npm run test:unit ArrayWidget
+pnpm run test:unit StringWidget
+pnpm run test:unit NumberWidget
+pnpm run test:unit BooleanWidget
+pnpm run test:unit SelectWidget
+pnpm run test:unit ArrayWidget
 
 # 运行所有 Widget 测试
-npm run test:unit widgets
+pnpm run test:unit widgets
 
 # 监听模式运行测试
-npm run test:unit -- --watch
+pnpm run test:unit -- --watch
 
 # 生成测试覆盖率报告
-npm run test:unit -- --coverage
+pnpm run test:unit -- --coverage
 ```
 
 ### 调试测试
 
 ```bash
 # 运行特定测试并显示详细输出
-npm run test:unit -- --reporter=verbose
+pnpm run test:unit -- --reporter=verbose
 
 # 运行失败的测试
-npm run test:unit -- --run-failed
+pnpm run test:unit -- --run-failed
 
 # 运行特定测试文件中的特定测试
-npm run test:unit -- --grep "应该正确渲染"
+pnpm run test:unit -- --grep "应该正确渲染"
 ```
 
 ## 测试最佳实践
@@ -260,9 +260,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
-      - run: npm install
-      - run: npm run test:unit
-      - run: npm run test:unit -- --coverage
+      - run: pnpm install
+      - run: pnpm run test:unit
+      - run: pnpm run test:unit -- --coverage
 ```
 
 ### 测试质量指标

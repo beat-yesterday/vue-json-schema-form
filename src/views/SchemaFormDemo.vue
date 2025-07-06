@@ -106,11 +106,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { NCard, NTabs, NTabPane, NDivider, NCode } from 'naive-ui'
 import { JsonSchemaForm, widgetRegistry } from '@/components/schema-form'
 import CascadingSelect from '@/components/schema-form/widgets/CascadingSelect.vue'
-import type { JsonSchema, UiSchema, JsonSchemaValue } from '@/types/schema'
+import type { JsonSchema, JsonSchemaValue, UiSchema } from '@/types/schema'
+import { NCard, NCode, NDivider, NTabPane, NTabs } from 'naive-ui'
+import { ref } from 'vue'
 
 // 注册级联选择控件
 widgetRegistry.register('CascadingSelect', CascadingSelect)
@@ -122,6 +122,10 @@ const basicFormData = ref<Record<string, JsonSchemaValue>>({
   email: '',
   active: false,
   gender: null,
+  tags: [
+    { name: 'tag1', type: 'tag' },
+    { name: 'tag2', type: 'tag' },
+  ],
 })
 
 const basicSchema: JsonSchema = {
@@ -134,6 +138,23 @@ const basicSchema: JsonSchema = {
       title: '姓名',
       minLength: 2,
       maxLength: 10,
+    },
+    tags: {
+      type: 'array',
+      title: '标签',
+      items: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            title: '标签名称',
+          },
+          type: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+      },
     },
     age: {
       type: 'integer',

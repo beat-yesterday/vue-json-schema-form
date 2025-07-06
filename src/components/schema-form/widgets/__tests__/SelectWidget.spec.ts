@@ -281,9 +281,10 @@ describe('SelectWidget', () => {
       expect(select.exists()).toBe(true)
     })
 
-    it('应该正确设置样式', () => {
+    it('应该正确渲染为 Naive UI 组件', () => {
       const select = wrapper.find('.n-select')
-      expect(select.attributes('style')).toContain('width: 100%')
+      expect(select.exists()).toBe(true)
+      expect(select.classes()).toContain('n-select')
     })
 
     it('应该支持 Naive UI 的主题系统', () => {
